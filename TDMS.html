@@ -1,0 +1,2198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TDMS</title>
+<link rel="icon" type="image/x-icon" href="logo.ico">
+
+<!-- Vendors -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<!-- Firebase -->
+<script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+<script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+
+<style>
+  :root{
+    --brand:#1e3a8a; --brand-2:#2563eb; --ok:#16a34a; --warn:#f59e0b; --bad:#ef4444; --info:#0ea5e9;
+    --bg:#f4f6f9; --card:#ffffff; --text:#0f172a; --muted:#64748b;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);}  
+.dashboard-cards {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.dashboard-cards .card {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  flex: 1 1 200px;
+  padding: 16px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+.dashboard-cards .card h3 {
+  font-size: 16px;
+  margin-bottom: 8px;
+  color: #334155;
+}
+.dashboard-cards .card p {
+  font-size: 20px;
+  font-weight: bold;
+  color: #1e293b;
+}
+/* Base card hover effect */
+.dashboard-cards .card {
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+/* Pulse animation keyframes */
+@keyframes pulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+/* Apply on hover */
+.dashboard-cards .card:hover {
+  animation: pulse 1.2s ease-in-out infinite;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.18);
+}
+
+/* Light gradient backgrounds */
+.card.drivers {
+  background: linear-gradient(135deg, #93c5fd, #60a5fa); /* light blue */
+  color: #0f172a;
+}
+.card.operators {
+  background: linear-gradient(135deg, #86efac, #34d399); /* light green */
+  color: #064e3b;
+}
+.card.leave {
+  background: linear-gradient(135deg, #fde68a, #fbbf24); /* light orange */
+  color: #78350f;
+}
+.card.resigned {
+  background: linear-gradient(135deg, #fecaca, #f87171); /* light red */
+  color: #7f1d1d;
+}
+
+
+  /* Login */
+  .login-wrap {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: url('background2.jpg') no-repeat center center;
+  background-size: cover;
+  overflow: hidden;
+}
+
+/* Overlay */
+.login-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5); /* dark overlay */
+  z-index: 0;
+}
+
+/* Make sure login card stays above overlay */
+.login-card {
+  position: relative;
+  z-index: 1;
+}
+
+/* Login Card with Glassmorphism */
+.login-card {
+  width: 360px;
+  padding: 22px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.15);   /* semi-transparent white */
+  backdrop-filter: blur(12px);             /* glass blur effect */
+  -webkit-backdrop-filter: blur(12px);     /* Safari support */
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  color: #f1f5f9;                          /* light text */
+  text-align: center;
+}
+
+  .login-card h1{margin:0 0 6px;font-size:20px}
+.login-card input {
+  width: 100%;
+  padding: 12px 14px;
+  margin-top: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.login-btn {
+  margin-top: 14px;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.login-btn:hover {
+  transform: scale(1.05);
+}
+
+  .login-hint{font-size:12px;color:#94a3b8;margin-top:10px}
+.login-logo {
+  width: 80px;          /* size of logo */
+  height: auto;
+  margin-bottom: 15px;
+  border-radius: 12px;  /* optional rounded corners */
+}
+
+  /* Layout */
+  .app{display:flex;min-height:100vh}
+  .sidebar{width:260px;background:linear-gradient(180deg,var(--brand),#111827);color:#e5e7eb;position:fixed;inset:0 auto 0 0;display:flex;flex-direction:column}
+  .brand{padding:22px 20px;font-size:20px;font-weight:700;border-bottom:1px solid rgba(255,255,255,.08)}
+  .nav a{display:flex;gap:10px;align-items:center;padding:14px 18px;color:#e5e7eb;text-decoration:none;border-left:3px solid transparent;transition:.2s}
+  .nav a:hover{background:rgba(255,255,255,.06)}
+  .nav a.active{background:rgba(37,99,235,.22);border-left-color:#93c5fd}
+
+  .content{margin-left:260px;padding:20px;flex:1}
+  .footer{position:fixed;right:12px;bottom:8px;font-size:12px;color:#475569}
+  /*.user-info{position:absolute;top:10px;right:20px;font-size:14px;font-weight:600;color:#1e293b}*/
+.user-bar {
+  display: flex;
+  align-items: center;
+  gap: 15px;           /* space between username & button */
+  margin-bottom: 10px; /* space below, before Dashboard */
+}
+.user-bar #userLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+  /* Cards / Grid */
+  .grid{display:grid;gap:16px}
+  .grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  @media (max-width:1100px){.grid-4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media (max-width:700px){.grid-4,.grid-2{grid-template-columns:1fr}}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:0 10px 30px rgba(2,6,23,.06);padding:16px}
+  .kpi{display:flex;justify-content:space-between;align-items:center}
+  .kpi .big{font-size:30px;font-weight:800}
+  .kpi small{color:var(--muted)}
+  .kpi .badge{padding:6px 10px;border-radius:999px;font-size:12px}
+  .b-ok{background:rgba(22,163,74,.12);color:var(--ok)}
+  .b-warn{background:rgba(245,158,11,.12);color:var(--warn)}
+  .b-bad{background:rgba(239,68,68,.12);color:var(--bad)}
+  .b-info{background:rgba(14,165,233,.12);color:var(--info)}
+
+  /* Toolbar */
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+  .toolbar input,.toolbar select{padding:10px;border-radius:10px;border:1px solid #cbd5e1;background:#fff}
+  .btn{padding:10px 14px;border:none;border-radius:10px;background:var(--brand-2);color:#fff;font-weight:600;cursor:pointer}
+  .btn.secondary{background:#0ea5e9}
+  .btn.warn{background:#ef4444}
+
+  /* Table */
+  .table-wrap{overflow:auto;background:var(--card);border-radius:var(--radius);box-shadow:0 10px 30px rgba(2,6,23,.06)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:10px;border-bottom:1px solid #e2e8f0;text-align:center}
+  thead th{position:sticky;top:0;background:#eff6ff;font-weight:700}
+
+  /* Pagination */
+  .pagination{display:flex;gap:6px;align-items:center;justify-content:flex-end;margin-top:10px}
+  .page-btn{padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;cursor:pointer}
+  .page-btn[disabled]{opacity:.5;cursor:not-allowed}
+  .page-size{margin-left:auto}
+
+  /* Modal */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:100}
+  .modal .dialog{background:#fff;border-radius:14px;max-width:720px;width:95%;padding:16px}
+  .dialog h3{margin-top:0}
+  .dialog .grid-2{gap:10px}
+  .dialog input,.dialog select{width:100%;padding:10px;border-radius:10px;border:1px solid #cbd5e1}
+  .dialog .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
+
+  /* Undertaking paper */
+
+.undertaking-paper {
+  background: #fff;
+  color: #000;
+  padding: 20px;
+  max-width: 800px;
+  margin: auto;
+  font-size: 14px;
+  border: 1px solid #ccc;
+
+  display: flex;
+  flex-direction: column;
+  min-height: 297mm; /* full A4 height */
+}
+
+.undertaking-body {
+  flex: 1; /* pushes bottom to end */
+}
+
+.undertaking-bottom {
+  margin-top: auto;
+}
+
+
+.undertaking-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: center;
+}
+
+.logo-left,
+.logo-right {
+  width: 100px;         /* fixed width */
+  height: 100px;        /* fixed height */
+  object-fit: contain;  /* keeps aspect ratio inside the box */
+  display: block;
+}
+
+
+.undertaking-title h2, .undertaking-title h3 {
+  margin: 2px;
+}
+
+.undertaking-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+.undertaking-table th, .undertaking-table td {
+  border: 1px solid #000;
+  padding: 6px;
+  text-align: center;
+}
+.undertaking-table.no-border td {
+  border: none;
+}
+
+.undertaking-note {
+  color: red;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.undertaking-footer {
+  text-align: center;
+  margin-top: 40px;
+  font-style: italic;
+  font-size: 12px;
+  border-top: 1px solid #000;
+  padding-top: 5px;
+}
+
+@media print {
+  body * {
+    visibility: hidden; /* hide everything */
+  }
+  #undertaking, #undertaking * {
+    visibility: visible; /* show only undertaking */
+  }
+  #undertaking {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 210mm;
+    height: 297mm;
+  }
+  /* optional: hide the print button itself */
+  #undertaking button {
+    display: none !important;
+  }
+}
+
+/* Sidebar hover & active */
+.nav a {
+  transition: background 0.2s, transform 0.2s;
+}
+.nav a:hover {
+  transform: translateX(4px);
+  background: rgba(255,255,255,0.08);
+}
+.nav a.active {
+  background: linear-gradient(90deg, #2563eb33, transparent);
+  border-left: 4px solid #60a5fa;
+}
+
+.dashboard-cards .card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  color: white;
+}
+
+/* Glass overlay but keep gradient */
+.dashboard-cards .card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  border-radius: inherit;
+  z-index: 0;
+}
+
+/* Keep card content above overlay */
+.dashboard-cards .card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Table row hover */
+#dataTable tbody tr:hover {
+  background: #f1f5f9;
+  cursor: pointer;
+}
+
+/* Buttons – modern pill */
+.btn {
+  border-radius: 999px !important;
+  padding: 10px 20px !important;
+  font-weight: 600;
+  transition: transform 0.2s;
+}
+.btn:hover {
+  transform: scale(1.05);
+}
+
+/* Modal animation */
+.modal .dialog {
+  animation: fadeInUp 0.3s ease;
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Spinner animation */
+.spinner {
+  border: 4px solid rgba(255,255,255,0.3);
+  border-top: 4px solid #fff;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Toast notifications */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #2563eb;
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  animation: slideIn 0.3s;
+  z-index: 9999;
+}
+@keyframes slideIn {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.card, .modal .dialog {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+}
+.badge.active { background: #16a34a; }
+.badge.leave { background: #f59e0b; }
+.badge.resigned { background: #ef4444; }
+.badge.transfer { background: #3b82f6; }
+
+
+</style>
+</head>
+
+
+<!-- Loader Overlay -->
+<div id="loaderOverlay" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.5);
+  z-index:9999;
+   align-items:center;
+  justify-content:center;
+">
+  <div style="text-align:center;color:#fff;font-size:18px;">
+    <div class="spinner"></div>
+    <p>Please wait...</p>
+  </div>
+</div>
+
+
+
+<body>
+
+<!-- LOGIN -->
+<div id="loginWrap" class="login-wrap">
+<div class="login-card">
+  <img src="Trojan.png" alt="Trojan Contracting" class="login-logo" />
+  <h1>TDMS</h1>
+  <input id="u" placeholder="Username" />
+  <input id="p" placeholder="Password" type="password" />
+  <button id="loginBtn" class="login-btn">Login</button>
+  <div class="login-hint"></div>
+</div>
+</div>
+
+
+<div class="app" id="app" style="display:none">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+  <img src="Trojan.png" style="height:70px; vertical-align:middle; margin-right:15px;">
+  TDMS
+</div>
+
+    <nav class="nav">
+      <a href="#" id="nav-dashboard" class="active" onclick="nav('dashboard')">📊 Dashboard</a>
+      <a href="#" id="nav-list" onclick="nav('list')">🧾 Drivers/Operators List</a>
+<a href="#" id="nav-al6m" onclick="nav('al6m')">📅 Drivers/Operators Overstay </a>
+<a href="#" id="nav-undertaking" onclick="nav('undertaking')">📄 Undertaking</a>
+      <a href="#" id="nav-users" onclick="nav('users')">👥 Manage Users</a>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="content">
+  
+<div id="userBar" class="user-bar">
+  <span id="userLabel"></span>
+  <button id="logoutBtn" class="btn warn">Logout</button>
+</div>
+<button class="btn secondary" onclick="hardRefresh()">🔄 Refresh Now</button>
+
+
+<!-- DASHBOARD -->
+<section id="dashboard" class="section">
+  <h2>Dashboard</h2>
+
+  <!-- Summary Cards -->
+<div class="dashboard-cards">
+  <div class="card drivers">
+    <h3>🚗 Total Drivers</h3>
+    <p id="totalDrivers">0</p>
+    <small id="activeDrivers"></small>
+  </div>
+  <div class="card operators">
+    <h3>🛠️ Total Operators</h3>
+    <p id="totalOperators">0</p>
+    <small id="activeOperators"></small>
+  </div>
+  <div class="card leave">
+    <h3>🌴 On Annual Leave</h3>
+    <p id="onLeave">0</p>
+  </div>
+  <div class="card resigned">
+    <h3>❌ Resigned</h3>
+    <p id="resigned">0</p>
+  </div>
+</div>
+
+
+  <!-- Charts -->
+  <div class="grid grid-2">
+    <div class="card"><canvas id="driverChart" height="100"></canvas></div>
+    <div class="card"><canvas id="operatorChart" height="100"></canvas></div>
+  </div>
+  <div class="grid" style="margin-top:16px">
+    <div class="card"><canvas id="vendorChart" height="140"></canvas></div>
+  </div>
+<div class="grid" style="margin-top:16px">
+  <div class="card"><canvas id="leaveChart" height="140"></canvas></div>
+</div>
+</section>
+
+
+    <!-- DRIVER/OPERATOR LIST -->
+    <section id="list" class="section" style="display:none">
+      <h2>Driver/Operator List</h2>
+      <div class="toolbar card">
+        <input id="search" placeholder="Search" oninput="applyFilters()" />
+        <select id="fDesignation" onchange="applyFilters()">
+          <option value="">All Designations</option>
+          <option>Heavy Duty Driver</option>
+          <option>Bus Driver</option>
+          <option>Operator - Heavy Equipment</option>
+          <option>Light Vehicle Driver</option>
+	<option>Workshop</option>
+        </select>
+        <select id="fVendor" onchange="applyFilters()">
+          <option value="">All Vendors</option>
+          <option>Creation</option>
+          <option>Gatex</option>
+          <option>Samtech</option>
+        </select>
+        <select id="fStatus" onchange="applyFilters()">
+          <option value="">All Status</option>
+          <option>Active</option>
+          <option>Annual Leave</option>
+          <option>Resigned</option>
+          <option>Transfer</option>
+          <option>TouchKey Lost</option>
+          <option>TouchKey Not Working</option>
+        </select>
+        <span class="page-size">Rows/page:
+          <select id="pageSize" onchange="applyFilters()">
+            <option>10</option><option>20</option><option>50</option><option>100</option>
+          </select>
+        </span>
+       <input type="file" id="excelFile" accept=".xlsx,.xls" />
+<button id="btnImport" class="btn secondary" onclick="importExcel()">Import Excel</button>
+
+        <button class="btn" onclick="exportExcel()">Export Excel</button>
+        <button class="btn" onclick="exportPDF()">Export PDF</button>
+      </div>
+      <div class="card" id="addCard">
+        <h3>Add Driver/Operator</h3>
+        <div class="grid grid-4">
+          <input id="empId" placeholder="Employee ID" />
+          <input id="name" placeholder="Proper Name" />
+          <select id="designation">
+            <option value="">Designation</option>
+            <option>Heavy Duty Driver</option>
+            <option>Bus Driver</option>
+            <option>Operator - Heavy Equipment</option>
+            <option>Light Vehicle Driver</option>
+		<option>Workshop</option>
+          </select>
+          <select id="vendor">
+            <option value="">Vendor</option>
+            <option>Creation</option>
+            <option>Gatex</option>
+            <option>Samtech</option>
+          </select>
+          <input id="touchId" placeholder="Touch Key ID" />
+          <input id="serial" placeholder="Serial No (16 chars)" />
+          <input id="contact" placeholder="+9715XXXXXXXX" />
+          <input id="providedDate" type="date" />
+<input id="returnedDate" type="date" placeholder="Touchkey Returned Date (optional)" />
+          <select id="status">
+            <option>Active</option>
+            <option>Annual Leave</option>
+            <option>Resigned</option>
+            <option>Transfer</option>
+            <option>TouchKey Lost</option>
+            <option>TouchKey Not Working</option>
+          </select>
+          <input id="remarks" placeholder="Remarks" />
+          <button class="btn" onclick="addEntry()">Add</button>
+        </div>
+      </div>
+
+<p style="color:#2563eb; font-weight:600; margin:8px 0;">
+  💡 Tip: Right-click a row to open Driver/Operator Logs
+</p>
+
+      <div class="table-wrap">
+        <table id="dataTable">
+          <thead>
+            <tr>
+              <th>Employee ID</th>
+              <th>Name</th>
+              <th>Designation</th>
+              <th>Vendor</th>
+              <th>Touch Key ID</th>
+              <th>Serial</th>
+              <th>Contact</th>
+              <th>Touchkey Provided Date</th>
+	      <th>Touchkey Returned Date</th>
+	      <th>Leave Till</th>
+              <th>Status</th>
+              <th>Remarks</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <button class="page-btn" onclick="gotoPage(1)">⏮ First</button>
+        <button id="prevBtn" class="page-btn" onclick="gotoPage(state.page-1)">◀ Prev</button>
+        <span id="pageInfo"></span>
+        <button id="nextBtn" class="page-btn" onclick="gotoPage(state.page+1)">Next ▶</button>
+        <button class="page-btn" onclick="gotoPage(state.totalPages)">Last ⏭</button>
+      </div>
+    </section>
+
+
+<!-- ANNUAL LEAVE > 6 MONTHS -->
+<section id="al6m" class="section" style="display:none">
+  <h2>Annual Leave > 6 Months</h2>
+  <div class="card">
+    <button class="btn" onclick="exportAL6mExcel()">Export Excel</button>
+  </div>
+  <div class="table-wrap">
+    <table id="al6mTable">
+<thead>
+  <tr>
+    <th>Employee ID</th>
+    <th>Name</th>
+    <th>Designation</th>
+    <th>Vendor</th>
+    <th>Touch Key ID</th>
+    <th>Serial</th>
+    <th>Contact</th>
+    <th>Touchkey Provided Date</th>
+    <th>Leave Since</th>
+    <th>Leave Till</th>
+    <th>Status</th>
+    <th>Remarks</th>
+    <th>Category</th>
+    <th>Overstay Days</th>
+  </tr>
+</thead>
+
+      <tbody id="al6mBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- UNDERTAKING -->
+<section id="undertaking" class="section" style="display:none;">
+  <div id="undertakingContent" class="undertaking-paper">
+    <!-- Header -->
+    <div class="undertaking-header">
+
+
+	<img src="./NPClogo.png" class="logo-left" />
+      <div class="undertaking-title">
+        <h2>PLANT DEPARTMENT</h2>
+        <h3>FMS DIVISION</h3>
+        <h3>TOUCH KEY UNDERTAKING</h3>
+      </div>
+      <img src="./Trojanlogo.png" class="logo-right" />
+    </div>
+
+    <!-- Project/Date/Category -->
+    <table class="undertaking-table">
+      <tr>
+        <td>Project: I067 - Plant and Transportation</td>
+        <td>Category: Internal</td>
+      </tr>
+      <tr>
+        <td>Date: <span id="undertakingDate"></span></td>
+        <td></td>
+      </tr>
+    </table>
+
+    <!-- Driver Info -->
+    <table class="undertaking-table">
+      <thead>
+        <tr>
+          <th>S.No</th>
+          <th>Name</th>
+          <th>Employee ID</th>
+          <th>Touch Key ID</th>
+          <th>Serial</th>
+          <th>Contact</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td id="uName"></td>
+          <td id="uEmpId"></td>
+          <td id="uTouchId"></td>
+          <td id="uSerial"></td>
+          <td id="uContact"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Remarks -->
+    <div class="undertaking-body">
+      <p><b>Remarks:</b> <span id="uRemarks"></span></p>
+
+	<p style="margin: 20px 0;">&nbsp;</p>
+  	<p style="margin: 20px 0;">&nbsp;</p>
+  	<p style="margin: 20px 0;">&nbsp;</p>
+  	<p style="margin: 20px 0;">&nbsp;</p>
+	<p style="margin: 20px 0;">&nbsp;</p>
+  	<p style="margin: 20px 0;">&nbsp;</p>
+  	<p style="margin: 20px 0;">&nbsp;</p>
+  	<p style="margin: 20px 0;">&nbsp;</p>
+	<p style="margin: 20px 0;">&nbsp;</p>
+	<p style="margin: 20px 0;">&nbsp;</p>
+
+      <!-- Signatures -->
+      <table class="undertaking-table no-border">
+        <tr>
+          <td>FMS Office Clerk</td>
+          <td style="text-align:center;">FMS Plant Coordinator</td>
+          <td style="text-align:right;">Workshop Manager</td>
+        </tr>
+      </table>
+    </div>
+
+<!-- Bottom Section -->
+<div class="undertaking-bottom">
+  <p><b>Received By:</b></p>
+
+  <table class="undertaking-table no-border" style="width:100%; border-collapse:collapse;">
+    <tr>
+      <!-- English (Left) -->
+      <td style="width:50%; vertical-align:top; padding-left:40px;">
+        <p>Name: _____________________________</p>
+        <p>Employee No: _____________________</p>
+        <p>Mobile No: _______________________</p>
+        <p>Signature: ________________________</p>
+      </td>
+
+      <!-- Urdu (Right) -->
+      <td style="width:50%; vertical-align:top; padding-right:50px; text-align:right; direction:rtl; font-family:'Noto Nastaliq Urdu','Jameel Noori Nastaleeq', serif;">
+        <p>نام: ____________________________</p>
+        <p>ملازم نمبر: ______________________</p>
+        <p>موبائل نمبر: ______________________</p>
+        <p>دستخط: ________________________</p>
+      </td>
+    </tr>
+  </table>
+      <!-- Note -->
+      <p class="undertaking-note">
+        Note: Incase of lost or damage of touch key an amount of AED 1000/- , 2000/- respectively will be charged from Operator/Driver.
+      </p>
+
+      <!-- Footer -->
+      <div class="undertaking-footer">
+        For Office Use Only
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+   <button onclick="printUndertaking()">🖨️ Print</button>
+<!--  <button onclick="exportUndertakingPDF()">📑 Export PDF</button> -->
+</section>
+
+
+    <!-- USERS -->
+    <section id="users" class="section" style="display:none">
+      <h2>Users</h2>
+      <div class="card">
+        <h3>Add User</h3>
+        <div class="grid grid-4">
+          <input id="newU" placeholder="Username" />
+          <input id="newP" placeholder="Password" type="password" />
+          <select id="newRole">
+            <option>Viewer</option>
+            <option>Admin</option>
+            <option>SuperAdmin</option>
+          </select>
+          <button class="btn" onclick="addUser()">Add User</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="userTable">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Role</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="userTbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="footer">
+  Designed by Engr. Farrukh 
+  <span id="dataStatus" style="margin-left:12px; font-weight:600;"></span>
+</div>
+
+
+<!-- Edit Driver Modal -->
+<div id="editModal" class="modal">
+  <div class="dialog">
+    <h3>Edit Entry</h3>
+    <div class="grid grid-2">
+      <input id="e_empId" placeholder="Employee ID" />
+      <input id="e_name" placeholder="Name" />
+      <select id="e_designation">
+        <option>Heavy Duty Driver</option>
+        <option>Bus Driver</option>
+        <option>Operator - Heavy Equipment</option>
+        <option>Light Vehicle Driver</option>
+<option>Workshop</option>
+      </select>
+      <select id="e_vendor">
+        <option>Creation</option>
+        <option>Gatex</option>
+        <option>Samtech</option>
+      </select>
+      <input id="e_touchId" placeholder="Touch Key ID" />
+      <input id="e_serial" placeholder="Serial" />
+      <input id="e_contact" placeholder="Contact" />
+      <input id="e_providedDate" type="date" />
+<input id="e_returnedDate" type="date" placeholder="Tochkey Returned Date (optional)" />
+<input id="e_leaveTill" type="date" placeholder="Leave Till (optional)" />
+      <select id="e_status">
+        <option>Active</option>
+        <option>Annual Leave</option>
+        <option>Resigned</option>
+        <option>Transfer</option>
+        <option>TouchKey Lost</option>
+        <option>TouchKey Not Working</option>
+      </select>
+      <input id="e_remarks" placeholder="Remarks" />
+    </div>
+    <div class="actions">
+      <button class="btn warn" onclick="closeEdit()">Cancel</button>
+      <button class="btn" onclick="saveEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Change Password Modal -->
+<div id="pwModal" class="modal">
+  <div class="dialog">
+    <h3>Change Password</h3>
+    <input id="pwUser" type="hidden" />
+    <input id="pwNew" placeholder="New Password" type="password" />
+    <input id="pwConfirm" placeholder="Confirm Password" type="password" />
+    <div class="actions">
+      <button class="btn warn" onclick="closePw()">Cancel</button>
+      <button class="btn" onclick="savePw()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Driver Logs Modal -->
+<div id="logsModal" class="modal">
+  <div class="dialog">
+    <h3>Driver Logs</h3>
+    <div id="logsTimeline" style="max-height:400px;overflow:auto;"></div>
+    <div class="actions">
+	<button class="btn secondary" onclick="exportLogsPDF()">📑 Export PDF</button>
+      <button class="btn warn" onclick="closeLogs()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+/* -------------------------- Firebase (ESM) -------------------------- */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc,
+ updateDoc, deleteDoc, query, where, serverTimestamp, onSnapshot, orderBy
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+/* ===== YOUR FIREBASE CONFIG (from earlier message) ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyBN77tzL64Phk7ViJekoSpWuU2V_ztvs_8",
+  authDomain: "touchkey-system.firebaseapp.com",
+  projectId: "touchkey-system",
+  storageBucket: "touchkey-system.firebasestorage.app",
+  messagingSenderId: "317689042603",
+  appId: "1:317689042603:web:8e3ef55ffd221df46d49ee",
+  measurementId: "G-QQMZ07FQH7"
+};
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+// Enable local persistence (cache)
+import { enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+enableIndexedDbPersistence(db).catch(err=>{
+  console.warn("Persistence error", err);
+});
+
+
+/* ------------------------ Minimal helper styles ------------------------ */
+(function injectMinorStyles(){
+  const s=document.createElement('style');
+  s.textContent = `
+    .cell-bad{ background:#fee2e2 !important; }
+    .badge-danger{ background:rgba(239,68,68,.12); color:#ef4444; padding:4px 10px; border-radius:999px; font-size:12px }
+    .hidden{ display:none !important; }
+  `;
+  document.head.appendChild(s);
+})();
+function applyRoleUI(){
+  const role = (state.me?.role || '').toLowerCase();
+  const isViewer = role === 'viewer';
+
+  // Hide manual add form & import controls for viewers
+ // $('#addCard')?.classList.toggle('hidden', isViewer);
+  $('#excelFile')?.classList.toggle('hidden', isViewer);
+  $('#btnImport')?.classList.toggle('hidden', isViewer);
+}
+
+/* ------------------------------ Globals ------------------------------ */
+const COLL_DRIVERS = "drivers";
+const COLL_USERS   = "users";
+let unsubscribeDrivers = null;
+let unsubscribeUsers = null;
+
+const state = {
+  me: null,                           // {id, username, role}
+  drivers: [],                        // all drivers from DB
+  users: [],                          // all users from DB
+  filtered: [],                       // filtered drivers for table
+  page: 1,
+  pageSize: 10,
+  totalPages: 1,
+  editIndex: null,                    // index in drivers[]
+  editDocId: null,                    // firestore doc id being edited
+  annualLeaveOver6M: []               // derived list for alerts/export
+};
+// make state visible to inline onclick handlers
+window.state = state;
+
+/* ------------------------ Utility / Formatting ------------------------ */
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel)=> Array.from(document.querySelectorAll(sel));
+function toast(msg){ alert(msg); }
+
+
+function isDriver(rec){ return /driver/i.test(rec.designation||'') && !/operator/i.test(rec.designation||''); }
+function isOperator(rec){ return /operator/i.test(rec.designation||''); }
+function statusIndexToText(i){ return ['Active','Annual Leave','Resigned','Transfer','TouchKey Lost','TouchKey Not Working'][i] || ''; }
+function validContact(c){ return /^\+9715\d{8}$/.test(c||''); }
+function validSerial(s){ return (s||'').length===16; }
+function parseDate(d){ return d ? new Date(d) : null; }
+function monthsDiff(fromDate, toDate=new Date()){
+  if(!fromDate) return 0;
+  const f = new Date(fromDate);
+  return (toDate.getFullYear()-f.getFullYear())*12 + (toDate.getMonth()-f.getMonth());
+}
+
+/* -------------------------- First-time seeding ------------------------- */
+async function ensureDefaultSuperAdmin(){
+  // Create SuperAdmin "Trojan Plant" / "1234" only if not exists
+  const qSnap = await getDocs(query(collection(db, COLL_USERS), where("username","==","Trojan Plant")));
+  if(qSnap.empty){
+    await addDoc(collection(db, COLL_USERS), {
+      username: "Trojan Plant",
+      password: "1234",
+      role: "SuperAdmin",
+      createdAt: serverTimestamp()
+    });
+  }
+}
+
+/* -------------------------------- Login -------------------------------- */
+async function doLogin(){
+  const u = $('#u').value.trim();
+  const p = $('#p').value.trim();
+  if(!u || !p){ toast("Enter username and password"); return; }
+
+try {
+    showLoader();  // show overlay while checking credentials
+
+  // authenticate against Firestore (no hashing as requested)
+  const qSnap = await getDocs(query(collection(db, COLL_USERS), where("username","==",u), where("password","==",p)));
+  if(qSnap.empty){ toast("Invalid credentials"); return; }
+
+  const docRef = qSnap.docs[0];
+  state.me = { id: docRef.id, ...docRef.data() };
+  $('#loginWrap').style.display='none';
+  $('#app').style.display='flex';
+  $('#userLabel').textContent = `${state.me.username} (${state.me.role})`;
+  // Access control: show/hide Users tab
+  const usersNav = $('#nav-users');
+  if(state.me.role === 'SuperAdmin'){ usersNav.style.display = 'block'; }
+  else { usersNav.style.display = 'none'; }
+applyRoleUI();
+
+  await loadDrivers();  // attaches realtime listener + paints from cache
+ await loadUsers();    // attaches realtime listener if SuperAdmin
+  nav('dashboard');
+}  catch(err){
+    console.error("Login error:", err);
+    toast("❌ Login failed");
+  }
+  finally {
+    hideLoader();   // <--- always hide overlay, success or fail
+  }
+}
+
+function doLogout() {
+  if (unsubscribeDrivers) { unsubscribeDrivers(); unsubscribeDrivers = null; }
+  if (unsubscribeUsers) { unsubscribeUsers(); unsubscribeUsers = null; }
+  state.me = null;
+
+  $('#userLabel').textContent = '';
+  $('#app').style.display = 'none';
+  $('#loginWrap').style.display = 'flex';
+  $('#u').value = '';
+  $('#p').value = '';
+}
+
+/* ------------------------------ Button Bindings ------------------------------ */
+window.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("loginBtn").addEventListener("click", doLogin);
+  document.getElementById("logoutBtn").addEventListener("click", doLogout);
+});
+
+/* --------------------------------- NAV --------------------------------- */
+function nav(id){
+  $$('.nav a').forEach(a=>a.classList.remove('active'));
+  $$('.section').forEach(s=>s.style.display='none');
+  $(`#${id}`).style.display='block';
+  $(`#nav-${id}`).classList.add('active');
+
+  if(id==='dashboard') renderDashboard();
+  if(id==='list'){ 
+    applyRoleUI();       // <-- add this line
+    applyFilters();
+  }
+  if(id==='users') renderUsers();
+if(id==='al6m') renderAL6M();
+ // Auto-fill date when opening Undertaking tab
+  if(id==='undertaking') {
+    document.getElementById("undertakingDate").textContent =
+      new Date().toLocaleDateString();
+  }
+}
+window.nav = nav;
+/* -------------------------------- Undertaking -------------------------------- */
+function fillUndertakingForm(driver) {
+  document.getElementById("undertakingDate").textContent = new Date().toLocaleDateString();
+  document.getElementById("uName").textContent = driver.name || '';
+  document.getElementById("uEmpId").textContent = driver.empId || '';
+  document.getElementById("uTouchId").textContent = driver.touchId || '';
+  document.getElementById("uSerial").textContent = driver.serial || '';
+  document.getElementById("uContact").textContent = driver.contact || '';
+  document.getElementById("uRemarks").textContent = driver.remarks || '';
+}
+function printUndertaking() {
+  const content = document.getElementById("undertaking");
+  if (!content) return;
+
+  // Save old display state
+  const sections = document.querySelectorAll(".section");
+  sections.forEach(s => s.setAttribute("data-old-display", s.style.display));
+
+  // Show undertaking only
+  sections.forEach(s => s.style.display = "none");
+  content.style.display = "block";
+
+  // Trigger print
+  window.print();
+
+  // Restore old state after print
+  sections.forEach(s => {
+    s.style.display = s.getAttribute("data-old-display") || "none";
+  });
+}
+window.printUndertaking = printUndertaking;
+
+/* -------------------------------- Export PDF Undertaking -------------------------------- */
+window.exportUndertakingPDF = function() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({
+    orientation: 'p',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  const element = document.getElementById("undertakingContent");
+
+  // Temporarily show undertaking if hidden
+  const parent = document.getElementById("undertaking");
+  const prev = parent.style.display;
+  parent.style.display = "block";
+
+  doc.html(element, {
+    callback: function (doc) {
+      doc.save("undertaking.pdf");
+      parent.style.display = prev; // restore after save
+    },
+    margin: [10, 10, 10, 10],
+    x: 0,
+    y: 0,
+    width: 190,
+    windowWidth: element.scrollWidth
+  });
+};
+
+
+/* -------------------------------- Users -------------------------------- */
+async function loadUsers(){
+  if (state.me?.role !== 'SuperAdmin') {
+   if (unsubscribeUsers) { unsubscribeUsers(); unsubscribeUsers = null; }
+   state.users = [];
+   return;
+ }
+ if (unsubscribeUsers) unsubscribeUsers();
+  unsubscribeUsers = onSnapshot(
+    collection(db, COLL_USERS),
+   (snap) => {
+      state.users = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+     renderUsers();
+   },
+   (err)=> console.error("Users onSnapshot error:", err)
+  );
+}
+
+
+function renderUsers(){
+  // Hide or show Users page actions based on role
+  if(state.me?.role!=='SuperAdmin'){ return; }
+  const tbody = $('#userTbody'); tbody.innerHTML='';
+  state.users.forEach(u=>{
+    const tr=document.createElement('tr');
+tr.innerHTML = `
+  <td>${u.username||''}</td>
+  <td>${u.role||''}</td>
+  <td>
+    <button class="page-btn" onclick="openPw('${u.id}','${u.username||''}')">Change Password</button>
+    ${
+      u.role === 'SuperAdmin'
+        ? ''   // 🔒 No delete button for SuperAdmin
+        : `<button class="page-btn" onclick="deleteUser('${u.id}')">Delete</button>`
+    }
+  </td>`;
+
+    tbody.appendChild(tr);
+  });
+}
+
+
+async function addUser(){
+  if(state.me?.role!=='SuperAdmin'){ toast('Only SuperAdmin can add users'); return; }
+  const username = $('#newU').value.trim();
+  const password = $('#newP').value.trim();
+  const role     = $('#newRole').value;
+  if(!username||!password){ toast('Username & Password required'); return; }
+
+  // prevent dup username
+  const qSnap = await getDocs(query(collection(db, COLL_USERS), where("username","==",username)));
+  if(!qSnap.empty){ toast('Username already exists'); return; }
+
+  await addDoc(collection(db, COLL_USERS), { username, password, role, createdAt: serverTimestamp() });
+  $('#newU').value=''; $('#newP').value=''; $('#newRole').value='Viewer';
+  await loadUsers();
+  toast('User added');
+}
+window.addUser = addUser;
+
+async function deleteUser(id){
+  if(state.me?.role!=='SuperAdmin'){ toast('Only SuperAdmin can delete users'); return; }
+  if(!confirm('Delete this user?')) return;
+  await deleteDoc(doc(db, COLL_USERS, id));
+  await loadUsers();
+  toast('User deleted');
+}
+window.deleteUser = deleteUser;
+function renderAL6M(){
+  const tbody = $('#al6mBody'); 
+  tbody.innerHTML = '';
+
+  state.annualLeaveOver6M.forEach(d=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = `
+      <td>${d.empId||''}</td>
+      <td>${d.name||''}</td>
+      <td>${d.designation||''}</td>
+      <td>${d.vendor||''}</td>
+      <td>${d.touchId||''}</td>
+      <td>${d.serial||''}</td>
+      <td>${d.contact||''}</td>
+      <td>${d.providedDate||''}</td>
+      <td>${d.returnedDate||''}</td>
+      <td>${d.leaveTill||''}</td>
+      <td>${d.status||''}</td>
+      <td>${d.remarks||''}</td>
+      <td>${d.category||''}</td>
+      <td>${d.overstayDays||''}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function openPw(id, username){
+  if(state.me?.role!=='SuperAdmin'){ toast('Only SuperAdmin can change passwords'); return; }
+  $('#pwUser').value = id;
+  $('#pwNew').value = '';
+  $('#pwConfirm').value = '';
+  $('#pwModal').style.display='flex';
+}
+window.openPw = openPw;
+
+function closePw(){ $('#pwModal').style.display='none'; }
+window.closePw = closePw;
+
+async function savePw(){
+  const id = $('#pwUser').value;
+  const np = $('#pwNew').value.trim();
+  const cp = $('#pwConfirm').value.trim();
+  if(!np){ toast('Enter new password'); return; }
+  if(np!==cp){ toast('Passwords do not match'); return; }
+  await updateDoc(doc(db, COLL_USERS, id), { password: np });
+  closePw();
+  await loadUsers();
+  toast('Password updated');
+}
+window.savePw = savePw;
+
+
+/* ------------------------------- Drivers -------------------------------- */
+async function loadDrivers() {
+  const cacheKey = "driversCache";
+  const cacheTTL = 1000 * 60 * 60 * 24; // 24h
+
+  let needsRefresh = true;
+
+  // 1) Check local cache
+  const cached = localStorage.getItem(cacheKey);
+  if (cached) {
+    const { timestamp, data } = JSON.parse(cached);
+    state.drivers = data || [];
+    deriveAnnualLeaveList();
+    refreshAll();
+
+    // If cache still valid → no refresh
+    if (Date.now() - timestamp < cacheTTL) {
+      needsRefresh = false;
+	setDataStatus("⚡ Cached", "#f59e0b");  // orange
+      console.log("✅ Using cache, still fresh");
+    } else {
+	setDataStatus("⚠️ Cache expired, refreshing…", "#ef4444");  // red
+      console.log("⚠️ Cache expired, will refresh once");
+    }
+  }
+
+  // 2) Always attach realtime listener (keeps cache updated on changes)
+  if (unsubscribeDrivers) unsubscribeDrivers();
+  unsubscribeDrivers = onSnapshot(
+    collection(db, COLL_DRIVERS),
+    { includeMetadataChanges: true },
+    (snap) => {
+      const arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      arr.sort((a, b) => {
+        const ta = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+        const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+        return tb - ta;
+      });
+      state.drivers = arr;
+
+      deriveAnnualLeaveList();
+      updateDriverCache();
+      refreshAll();
+
+      if (!snap.metadata.fromCache) {
+	setDataStatus("🔄 Realtime update", "#16a34a");  // green
+        console.log("🔄 Realtime update from Firestore");
+      }
+    },
+    (err) => console.error("onSnapshot error:", err)
+  );
+
+  //Lazy refresh: only if cache expired
+  if (needsRefresh) {
+    const snap = await getDocs(collection(db, COLL_DRIVERS));
+    const arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    arr.sort((a, b) => {
+      const ta = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+      const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+      return tb - ta;
+    });
+    state.drivers = arr;
+    deriveAnnualLeaveList();
+    updateDriverCache();
+    refreshAll();
+	setDataStatus("✅ Fresh data", "#2563eb");  // blue
+    console.log("✅ Cache refreshed after 24h");
+  }
+}
+
+
+
+function deriveAnnualLeaveList(){
+  state.annualLeaveOver6M = state.drivers.filter(d => {
+    if(d.status !== "Annual Leave") return false;
+
+    const leaveSince = d.returnedDate ? new Date(d.returnedDate) : null; // "Leave Since"
+    const leaveTill  = d.leaveTill ? new Date(d.leaveTill) : null;
+    const today = new Date();
+const grace = 10 * 24 * 60 * 60 * 1000; // 10 days in ms
+
+    let category = "";
+    let overstayDays = 0;
+
+    // 1) If > 6 months since returnedDate
+    if (leaveSince && (today - leaveSince) > (180*24*60*60*1000)) {
+      category = "Leave > 6 Months";
+      if (leaveTill) {
+        overstayDays = Math.max(0, Math.floor((today - leaveTill) / (1000*60*60*24)));
+      }
+    }
+    // 2) Otherwise, if overstayed beyond leaveTill
+ else if (leaveTill && today > new Date(leaveTill.getTime() + grace)) {
+        category = "Overstay";
+        overstayDays = Math.floor(
+          (today - leaveTill.getTime()) / (1000 * 60 * 60 * 24)
+        );
+      }
+    else {
+      return false; // Not included
+    }
+
+    d.category = category;
+    d.overstayDays = overstayDays;
+    return true;
+  });
+}
+
+
+function updateDriverCache(){
+  localStorage.setItem("driversCache", JSON.stringify({
+    timestamp: Date.now(),
+    data: state.drivers
+  }));
+}
+
+function refreshAll(){
+  renderDashboard();
+  updateDashboardCounts();   // ⬅️ add here
+  applyFilters();
+}
+
+function updateDashboardCounts() {
+  const all = state.drivers || [];
+
+  const drivers = all.filter(isDriver);
+  const operators = all.filter(isOperator);
+
+  const totalDrivers = drivers.length;
+  const activeDrivers = drivers.filter(d => d.status === "Active").length;
+
+  const totalOperators = operators.length;
+  const activeOperators = operators.filter(d => d.status === "Active").length;
+
+  const onLeave = all.filter(d => d.status === "Annual Leave").length;
+  const resigned = all.filter(d => d.status === "Resigned").length;
+
+  $('#totalDrivers').textContent = totalDrivers;
+  $('#activeDrivers').textContent = `Active: ${activeDrivers}`;
+  $('#totalOperators').textContent = totalOperators;
+  $('#activeOperators').textContent = `Active: ${activeOperators}`;
+  $('#onLeave').textContent = onLeave;
+  $('#resigned').textContent = resigned;
+}
+
+
+// Disable/enable returnedDate based on status
+$('#status').addEventListener('change', function () {
+  const status = this.value;
+  const returned = $('#returnedDate');
+
+  if (status === 'Active') {
+    returned.disabled = true;
+    returned.value = '';
+  } 
+  else if (status === 'Resigned') {
+    returned.disabled = false;   // only returnedDate
+
+  } 
+  else {
+    returned.disabled = false;
+  }
+});
+// Disable/enable returnedDate & leaveTill in EDIT modal
+$('#e_status').addEventListener('change', function () {
+  const status = this.value;
+  const returned = $('#e_returnedDate');
+  const leaveTill = $('#e_leaveTill');
+
+  if (status === 'Active') {
+    returned.disabled = true;
+    leaveTill.disabled = true;
+    returned.value = '';
+    leaveTill.value = '';
+  } else if (status === 'Resigned') {
+    returned.disabled = false;   // only returnedDate allowed
+    leaveTill.disabled = true;
+    leaveTill.value = '';
+  } else {
+    returned.disabled = false;
+    leaveTill.disabled = false;
+  }
+});
+
+// run once on page load so defaults apply
+window.addEventListener('load', () => {
+  $('#status').dispatchEvent(new Event('change'));
+});
+
+
+function showLoader() {
+  const el = document.getElementById('loaderOverlay');
+  el.style.display = 'flex';
+  // auto-hide after 20s in case something hangs
+  setTimeout(() => hideLoader(), 20000);
+}
+
+function hideLoader() {
+  document.getElementById('loaderOverlay').style.display = 'none';
+}
+
+
+/* ------------- Add / Edit / Delete (respect role permissions) ----------- */
+async function addEntry(){
+  /*if ((state.me?.role || '').toLowerCase() === 'viewer'){ toast('Viewers cannot add'); return; }*/
+
+try {
+    showLoader();
+  const empId = $('#empId').value.trim();
+  const name  = $('#name').value.trim();
+  const designation = $('#designation').value;
+  const vendor = $('#vendor').value;
+  const touchId = $('#touchId').value.trim();
+  const serial  = $('#serial').value.trim();
+  const contact = $('#contact').value.trim();
+  const providedDate = $('#providedDate').value;
+  const returnedDate = $('#returnedDate').value;
+const leaveTill = $('#leaveTill')?.value;   // <-- add this
+
+  const status  = $('#status').value;
+  const remarks = $('#remarks').value.trim();
+
+  if (returnedDate && providedDate && new Date(returnedDate) <= new Date(providedDate)) {
+    toast("❌ Returned Date must be later than Provided Date");
+    return;
+  }
+
+
+  if(!empId || !name || !designation || !vendor || !touchId || !providedDate){
+    toast('Please fill all required fields'); return;
+  }
+
+let payload = {
+  empId, name, designation, vendor, touchId, serial, contact,
+  providedDate, status, remarks,
+  createdAt: serverTimestamp(),
+  invalids: {
+    contact: !validContact(contact),
+    serial: !validSerial(serial)
+  },
+  returnedDate: returnedDate || null,
+  leaveTill: leaveTill || null,
+returnedOnTime: false
+};
+
+// 🔑 Auto-cleaning logic
+if (status === "Active") {
+  payload.returnedDate = null;
+  payload.leaveTill = null;
+}
+else if (status === "Resigned") {
+  payload.leaveTill = null;  // only keep returnedDate
+}
+
+
+
+  // add to Firestore
+  const docRef = await addDoc(collection(db, COLL_DRIVERS), payload);
+// after addDoc()
+await logStatusChange(docRef.id, status, remarks);
+
+
+  // update local state immediately
+ /* state.drivers.unshift({ id: docRef.id, ...payload });  // add New Row on top
+deriveAnnualLeaveList();   // recalc overstay
+updateDriverCache();
+renderAL6M();
+refreshAll();*/
+
+// Only update Undertaking if status = Active
+if (status === "Active") {
+  fillUndertakingForm(payload);
+  nav('undertaking');
+}
+
+
+  // clear form
+  ['empId','name','designation','vendor','touchId','serial','contact','providedDate','remarks','returnedDate']
+    .forEach(id=>{$(`#${id}`).value='';});
+  $('#status').value='Active';
+
+  toast('Driver added');
+}catch (err) {
+    console.error("Add error:", err);
+    toast("❌ Failed to update driver");
+  } finally {
+    hideLoader();
+  }
+}
+
+window.addEntry = addEntry;
+
+function openEdit(ix){
+  const d = state.filtered[ix]; if(!d) return;
+  state.editIndex = ix;
+  state.editDocId = d.id;
+  $('#e_empId').value = d.empId||'';
+  $('#e_name').value = d.name||'';
+  $('#e_designation').value = d.designation||'Heavy Duty Driver';
+  $('#e_vendor').value = d.vendor||'Creation';
+  $('#e_touchId').value = d.touchId||'';
+  $('#e_serial').value = d.serial||'';
+  $('#e_contact').value = d.contact||'';
+  $('#e_providedDate').value = d.providedDate||'';
+$('#e_returnedDate').value = d.returnedDate || '';
+$('#e_leaveTill').value = d.leaveTill || '';
+  $('#e_status').value = d.status||'Active';
+  $('#e_remarks').value = d.remarks||'';
+  $('#editModal').style.display='flex';
+$('#e_status').dispatchEvent(new Event('change'));
+
+}
+window.openEdit = openEdit;
+
+function closeEdit(){ $('#editModal').style.display='none'; state.editIndex=null; state.editDocId=null; }
+window.closeEdit = closeEdit;
+
+function normalizeDate(v){
+  if (!v) return '';
+  if (v instanceof Date) return v.toISOString().slice(0,10); // Excel date
+  if (typeof v === 'number') return XLSX.SSF.format("yyyy-mm-dd", v); // numeric Excel date
+  return String(v).slice(0,10); // already string
+}
+
+
+async function saveEdit(){
+ /* if(state.me?.role==='Viewer'){ toast('Viewers cannot edit'); return; }*/
+
+
+try {
+    showLoader();
+  const id = state.editDocId;
+  if (!id) { toast('No record selected'); return; }
+
+  const providedDate = $('#e_providedDate').value;
+  const returnedDate = $('#e_returnedDate').value;
+  const leaveTill    = $('#e_leaveTill').value;
+
+  let status = $('#e_status').value;
+
+  const prev = state.drivers.find(d => d.id === id);  // ⬅️ get previous doc
+
+  const rec = {
+    empId: $('#e_empId').value.trim(),
+    name: $('#e_name').value.trim(),
+    designation: $('#e_designation').value,
+    vendor: $('#e_vendor').value,
+    touchId: $('#e_touchId').value.trim(),
+    serial: $('#e_serial').value.trim(),
+    contact: $('#e_contact').value.trim(),
+    providedDate: $('#e_providedDate').value,
+    returnedDate: $('#e_returnedDate').value || null,
+    leaveTill: $('#e_leaveTill').value || null,
+    status,
+    remarks: $('#e_remarks').value.trim(),
+    invalids: {
+      contact: !validContact($('#e_contact').value.trim()),
+      serial:  !validSerial($('#e_serial').value.trim())
+    },
+    returnedOnTime: prev?.returnedOnTime || false   // ⬅ keep previous unless updated
+  };
+
+if (returnedDate && providedDate && new Date(returnedDate) <= new Date(providedDate)) {
+    toast("❌ Returned Date must be later than Provided Date");
+    return;
+  }
+  if (leaveTill) {
+    if (providedDate && new Date(leaveTill) <= new Date(providedDate)) {
+      toast("❌ Leave Till must be later than Provided Date");
+      return;
+    }
+    if (returnedDate && new Date(leaveTill) <= new Date(returnedDate)) {
+      toast("❌ Leave Till must be later than Returned Date");
+      return;
+    }
+  }
+
+  // 🔑 Reset fields based on status
+  if (status === "Active") {
+    // check if returning from Annual Leave and leaveTill still valid
+    if (prev?.status === "Annual Leave" && prev.leaveTill) {
+      const leaveTillDate = new Date(prev.leaveTill);
+const grace = 10 * 24 * 60 * 60 * 1000; // 10 days in ms
+if (new Date() <= new Date(leaveTillDate.getTime() + grace)) {
+  rec.returnedOnTime = true;  // within grace period = on time
+}
+
+    }
+    rec.returnedDate = null;
+    rec.leaveTill = null;
+  }
+  else if (status === "Resigned") {
+    rec.leaveTill = null; // keep only returnedDate
+  }
+
+  await updateDoc(doc(db, COLL_DRIVERS, id), rec);
+if (prev?.status !== status) {
+  await logStatusChange(id, status, rec.remarks);
+}
+
+
+  const idx = state.drivers.findIndex(d => d.id === id);
+  if (idx !== -1) state.drivers[idx] = { ...state.drivers[idx], ...rec };
+
+  deriveAnnualLeaveList();
+  updateDriverCache();
+  renderAL6M();
+  refreshAll();
+
+  closeEdit();
+  toast('Driver updated');
+}catch (err) {
+    console.error("Edit error:", err);
+    toast("❌ Failed to update driver");
+  } finally {
+    hideLoader();
+  }
+}
+
+window.saveEdit = saveEdit;
+
+/* -----------------------  Log Status Function -------------------- */
+
+async function logStatusChange(driverId, newStatus, remarks="") {
+  await addDoc(collection(db, COLL_DRIVERS, driverId, "logs"), {
+    status: newStatus,
+    remarks,
+    changedAt: serverTimestamp(),
+    changedBy: state.me?.username || "system"
+  });
+}
+
+/* -----------------------  open Function -------------------- */
+let unsubscribeLogs = null;
+
+async function openLogs(driverId, driverName) {
+  console.log("Opening logs for", driverId, driverName);
+  const container = document.getElementById("logsTimeline");
+  container.innerHTML = `<div style="text-align:center;padding:20px;">
+    <span style="font-size:14px;color:#475569;">⏳ Please wait, loading logs...</span>
+  </div>`;
+  document.getElementById("logsModal").style.display = "flex";
+  state.currentLogDriver = { id: driverId, name: driverName };
+
+  // Clean previous listener if already active
+  if (unsubscribeLogs) unsubscribeLogs();
+
+  // Attach a temporary real-time listener
+  unsubscribeLogs = onSnapshot(
+    query(collection(db, COLL_DRIVERS, driverId, "logs"), orderBy("changedAt", "asc")),
+    (qSnap) => {
+      container.innerHTML = `<h4>${driverName}</h4><ul style="list-style:none;padding:0;">`;
+      qSnap.forEach(doc => {
+        const d = doc.data();
+        const date = d.changedAt?.toDate().toLocaleString() || "";
+        const color = d.status === "Active" ? "green"
+                    : d.status === "Annual Leave" ? "orange"
+                    : d.status === "Resigned" ? "red"
+                    : d.status === "Transfer" ? "blue"
+                    : "gray";
+        container.innerHTML += `
+          <li style="margin:8px 0; padding:8px; border-left:4px solid ${color}; background:#f9fafb; border-radius:6px;">
+            <b style="color:${color}">${d.status}</b> 
+            <small>(${date} by ${d.changedBy})</small><br>
+            <i>${d.remarks || ""}</i>
+          </li>`;
+      });
+      container.innerHTML += "</ul>";
+    },
+    (err) => {
+      console.error("Logs listener error", err);
+      container.innerHTML = `<p style="color:red;">❌ Failed to load logs</p>`;
+    }
+  );
+}
+
+/* ----------------------- Close log Function -------------------- */
+function closeLogs() {
+  const modal = document.getElementById("logsModal");
+  modal.style.display = "none";
+
+  // Detach listener to save reads
+  if (unsubscribeLogs) {
+    unsubscribeLogs();
+    unsubscribeLogs = null;
+  }
+}
+window.closeLogs = closeLogs;
+
+
+
+/* ----------------------- Remove Row Function -------------------- */
+
+async function removeRow(ix) {
+  if (!confirm("Are you sure you want to delete this record?")) return;
+
+  const d = state.filtered[ix];
+  if (!d) return;
+
+  try {
+    // Delete from Firestore
+    await deleteDoc(doc(db, COLL_DRIVERS, d.id));
+
+    // Remove from local state
+    state.drivers = state.drivers.filter(item => item.id !== d.id);
+
+    deriveAnnualLeaveList();   // recalc overstay list
+    updateDriverCache();       // update cache
+    renderAL6M();
+    refreshAll();
+
+    toast("Driver deleted successfully");
+  } catch (err) {
+    console.error("Delete failed", err);
+    toast("❌ Failed to delete: " + err.message);
+  }
+}
+window.removeRow = removeRow;
+
+/* ----------------------- hard refresh -------------------- */
+
+window.hardRefresh = async function(){
+  localStorage.removeItem("driversCache");
+  // Force one-time server fetch (snapshot will also refresh anyway)
+  const snap = await getDocs(collection(db, COLL_DRIVERS));
+  const arr = snap.docs.map(d=>({ id: d.id, ...d.data() }));
+  arr.sort((a,b)=>{
+    const ta = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+    const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+    return tb - ta;
+  });
+  state.drivers = arr;
+  deriveAnnualLeaveList();
+  updateDriverCache();
+  refreshAll();
+  toast('Data refreshed from server');
+};
+
+/* ----------------------- Filters, Table & Pagination -------------------- */
+function applyFilters(resetPage = true){
+  const q = ($('#search').value||'').toLowerCase();
+  const fDes = $('#fDesignation').value;
+  const fSta = $('#fStatus').value;
+  const fVen = $('#fVendor').value;
+  state.filtered = state.drivers.filter(d=>{
+    const text = `${d.empId||''} ${d.name||''} ${d.serial||''} ${d.touchId||''} ${d.contact||''} ${d.remarks||''}`.toLowerCase();
+    const okQ = !q || text.includes(q);
+    const okD = !fDes || d.designation===fDes;
+    const okS = !fSta || d.status===fSta;
+    const okV = !fVen || d.vendor===fVen;
+    return okQ && okD && okS && okV;
+  });
+
+  if (resetPage) state.page = 1;   // only reset on search/filter change
+
+  state.pageSize = parseInt($('#pageSize').value || '10', 10);
+  state.totalPages = Math.max(1, Math.ceil(state.filtered.length / state.pageSize));
+
+  renderTablePage();
+}
+window.applyFilters = applyFilters;
+
+function gotoPage(p){
+  state.page = Math.min(Math.max(1, p), state.totalPages);
+  renderTablePage();
+}
+
+window.gotoPage = gotoPage;
+
+function renderTablePage(){
+  const start = (state.page - 1) * state.pageSize;
+  const rows = state.filtered.slice(start, start + state.pageSize);
+  const tbody = $('#tbody');
+  tbody.innerHTML = '';
+
+  rows.forEach((d, idx) => {
+    const gi = start + idx;
+    const tr = document.createElement('tr');
+	tr.oncontextmenu = (e) => {
+  e.preventDefault(); // stop browser default menu
+  openLogs(d.id, d.name);
+};
+    tr.innerHTML = `
+      <td>${d.empId||''}</td>
+      <td>${d.name||''}</td>
+      <td>${d.designation||''}</td>
+      <td>${d.vendor||''}</td>
+      <td>${d.touchId||''}</td>
+      <td>${d.serial||''}</td>
+      <td>${d.contact||''}</td>
+      <td>${d.providedDate||''}</td>
+      <td>${d.returnedDate||''}</td>
+<td>${d.leaveTill||''}</td>
+      <td>${d.status||''}</td>
+      <td>${d.remarks||''}</td>
+<td>
+  ${
+    state.me?.role === 'Viewer'
+      ? `<button class="page-btn" onclick="openEdit(${gi})">Edit</button>`
+      : `
+        <button class="page-btn" onclick="openEdit(${gi})">Edit</button>
+        <button class="page-btn" onclick="removeRow(${gi})">Delete</button>
+      `
+  }
+</td>
+`;
+    tbody.appendChild(tr);
+  });
+
+  // Update pagination info
+  $('#pageInfo').textContent =
+    `Page ${state.page} of ${state.totalPages} — ${state.filtered.length} rows`;
+
+  // Enable/disable buttons
+  $('#prevBtn').disabled = state.page <= 1;
+  $('#nextBtn').disabled = state.page >= state.totalPages;
+}
+
+
+/* ------------------------------ Import/Export --------------------------- */
+// Import: allow invalids, mark bad cells (contact/serial), include vendor
+
+window.importExcel = function(){
+  const file = $('#excelFile').files[0];
+  if(!file){ toast('Choose an Excel file first'); return; }
+  const reader = new FileReader();
+  reader.onload = async (e)=>{
+    try{
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws);
+      let added = 0;
+
+      // Header mapping (expects same names as earlier build; vendor added)
+      // "Employee ID","Proper Name","Designation","Vendor","Touch Key ID","Serial No","Contact Number","Touchkey Provided Date","Driver Status","Remarks"
+      for(const r of rows){
+        const empId  = r['Employee ID'] || '';
+        const name   = r['Proper Name'] || '';
+        const designation = r['Designation'] || '';
+        const vendor = r['Vendor'] || '';
+        const touchId= r['Touch Key ID'] || '';
+        const serial = r['Serial No'] || '';
+        const contact= r['Contact Number'] || '';
+const providedDate = normalizeDate(r['Touchkey Provided Date']);
+const returnedDate = normalizeDate(r['Touchkey Returned Date']);
+const leaveTill    = normalizeDate(r['Leave Till']);
+
+        const status = r['Driver Status'] || '';
+        const remarks= r['Remarks'] || '';
+
+        const invalids = { contact: !validContact(contact), serial: !validSerial(serial) };
+        const payload = {
+          empId,name,designation,vendor,touchId,serial,contact,providedDate,status,remarks,
+          invalids,
+          createdAt: serverTimestamp(),
+          returnedDate: status==='Annual Leave' ? (new Date()).toISOString().slice(0,10) : null,
+	returnedDate: returnedDate || null,
+
+        };
+if (status === "Active") {
+  payload.returnedDate = null;
+  payload.leaveTill = null;
+}
+else if (status === "Resigned") {
+  payload.leaveTill = null; // keep only returnedDate
+}
+
+
+await addDoc(collection(db, COLL_DRIVERS), payload);
+        added++;
+      }
+//Realtime Listener will bring the latest in; cashe will be updated there
+
+      toast(`Import finished: ${added} rows added`);
+    }catch(err){ toast('Failed to read Excel: '+err.message); }
+
+  };
+  reader.readAsArrayBuffer(file);
+};
+
+// Export current filtered to Excel
+window.exportExcel = function(){
+  const ws = XLSX.utils.json_to_sheet(state.filtered.map(d=>({
+    "Employee ID": d.empId,
+    "Proper Name": d.name,
+    "Designation": d.designation,
+    "Vendor": d.vendor,
+    "Touch Key ID": d.touchId,
+    "Serial No": d.serial,
+    "Contact Number": d.contact,
+    "Touchkey Provided Date": d.providedDate,
+"Touchkey Returned Date": d.returnedDate || "",
+"Leave Till": d.leaveTill || "",
+    "Driver Status": d.status,
+    "Remarks": d.remarks
+  })));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "TouchKeys");
+  XLSX.writeFile(wb, "touchkeys.xlsx");
+};
+
+// Export filtered to PDF
+window.exportPDF = function(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'l', unit:'pt', format:'a4'});
+  doc.setFontSize(14);
+  doc.text("TouchKey - Driver/Operator List", 40, 34);
+  const body = state.filtered.map(d=>[
+    d.empId,d.name,d.designation,d.vendor,d.touchId,d.serial,d.contact,d.providedDate,d.returnedDate || "",d.leaveTill || "",d.status,d.remarks
+  ]);
+  doc.autoTable({
+    startY: 50,
+    head:[["Emp ID","Name","Designation","Vendor","TouchKey","Serial","Contact","Touchkey Provided Date","Touchkey Returned Date","Leave Till","Status","Remarks"]],
+    body,
+    styles:{fontSize:9,cellPadding:4}
+  });
+  doc.save("touchkeys.pdf");
+};
+
+// Export Annual Leave > 6 months to Excel
+window.exportAL6mExcel = function(){
+  const ws = XLSX.utils.json_to_sheet(state.annualLeaveOver6M.map(d=>({
+    "Employee ID": d.empId,
+    "Name": d.name,
+    "Designation": d.designation,
+    "Vendor": d.vendor,
+    "TouchKey": d.touchId,
+    "Serial": d.serial,
+    "Contact": d.contact,
+    "Touchkey Provided Date": d.providedDate,
+    "Leave Since": d.returnedDate,
+    "Leave Till": d.leaveTill,
+    "Status": d.status,
+    "Remarks": d.remarks,
+    "Category": d.category,
+    "Overstay Days": d.overstayDays
+  })));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "AnnualLeave>6m");
+  XLSX.writeFile(wb, "annual_leave_over_6m.xlsx");
+};
+
+/* -------------------------------- exportLogsPDF ----------------------------- */
+
+window.exportLogsPDF = function() {
+  const { jsPDF } = window.jspdf;
+  const container = document.getElementById("logsTimeline");
+  if (!container || !container.innerHTML.trim()) {
+    alert("⚠️ No logs to export");
+    return;
+  }
+
+  // Driver details
+  const drv = state.currentLogDriver || { id: "Unknown", name: "Unknown" };
+  const driverName = drv.name || "Unknown";
+  const driverId = drv.id || "Unknown";
+
+  // Create PDF
+  const doc = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
+  doc.setFontSize(14);
+  doc.text(`Driver Logs Report`, 40, 40);
+  doc.setFontSize(12);
+  doc.text(`Name: ${driverName}`, 40, 60);
+  doc.text(`Employee ID: ${driverId}`, 40, 80);
+
+  // Collect logs into rows
+  const rows = [];
+  container.querySelectorAll("li").forEach(li => {
+    const status = li.querySelector("b")?.textContent || "";
+    const details = li.querySelector("small")?.textContent || "";
+    const remarks = li.querySelector("i")?.textContent || "";
+    rows.push([status, details, remarks]);
+  });
+
+  // AutoTable
+  doc.autoTable({
+    startY: 100,
+    head: [["Status", "Details", "Remarks"]],
+    body: rows,
+    styles: { fontSize: 10, cellPadding: 4 },
+    headStyles: { fillColor: [30, 58, 138] }
+  });
+
+  // Save with driver name & ID in filename
+  const safeName = driverName.replace(/\s+/g, "_");
+  doc.save(`logs_${safeName}_${driverId}.pdf`);
+};
+
+/* -------------------------------- Dashboard ----------------------------- */
+let driverChart, operatorChart, vendorChart,leaveChart;
+
+function countByStatus(arr){
+  const map = {
+    "Active":0, "Annual Leave":0, "Resigned":0, "Transfer":0,
+    "TouchKey Lost":0, "TouchKey Not Working":0
+  };
+  arr.forEach(d=>{ if(map[d.status]!=null) map[d.status]++; });
+  return map;
+}
+function countByVendor(arr){
+  const map = {"Creation":0,"Gatex":0,"Samtech":0,"":0};
+  arr.forEach(d=>{
+    const v = (d.vendor||'').trim();
+    if(map[v]==null) map[v]=0;
+    map[v]++;
+  });
+  return map;
+}
+
+function renderDashboard(){
+  const driversArr = state.drivers.filter(isDriver);
+  const opsArr     = state.drivers.filter(isOperator);
+
+  const DRV = countByStatus(driversArr);
+  const OPR = countByStatus(opsArr);
+  const VEN = countByVendor(state.drivers);
+
+let totalLeave = state.drivers.filter(d => d.status === "Annual Leave").length;
+let returnedOnTime = state.drivers.filter(d => d.returnedOnTime).length;  // ⬅ use flag
+let overstay = state.annualLeaveOver6M.filter(d => d.category === "Overstay").length;
+let leave6m  = state.annualLeaveOver6M.filter(d => d.category === "Leave > 6 Months").length;
+
+
+  const LEAVE = {
+    "Total Annual Leave": totalLeave,
+    "Returned on Time": returnedOnTime,
+    "Overstay": overstay,
+    "Leave > 6 Months": leave6m
+  };
+  // KPIs
+  $('#drv_total')?.replaceChildren?.(); // if you kept IDs in your earlier HTML (optional)
+  // If you want live counters on cards like before, re-use those IDs; otherwise charts below suffice.
+
+  // Destroy old charts (avoid overlay)
+  if(driverChart) driverChart.destroy();
+  if(operatorChart) operatorChart.destroy();
+  if(vendorChart) vendorChart.destroy();
+if(leaveChart) leaveChart.destroy();
+
+  // Drivers status
+  driverChart = new Chart($('#driverChart'), {
+    type:'doughnut',
+    data:{ labels:Object.keys(DRV), datasets:[{ data:Object.values(DRV) }] },
+    options:{
+      plugins:{ title:{display:true, text:'Drivers Status'} },
+      onClick:(evt, els)=>{ if(els.length){ filterFromStatus('driver', Object.keys(DRV)[els[0].index]); } }
+    }
+  });
+
+  // Operators status
+  operatorChart = new Chart($('#operatorChart'), {
+    type:'doughnut',
+    data:{ labels:Object.keys(OPR), datasets:[{ data:Object.values(OPR) }] },
+    options:{
+      plugins:{ title:{display:true, text:'Operators Status'} },
+      onClick:(evt, els)=>{ if(els.length){ filterFromStatus('operator', Object.keys(OPR)[els[0].index]); } }
+    }
+  });
+
+  // Vendor distribution (full width below)
+vendorChart = new Chart($('#vendorChart'), {
+  type:'bar',
+  data:{
+    labels:Object.keys(VEN),
+    datasets:[{
+      label:'Vendor Touchkeys Status',
+      data:Object.values(VEN),
+      backgroundColor:['#2563eb','#16a34a','#f59e0b','#ef4444']  // optional colors
+    }]
+  },
+  options:{
+    plugins:{ title:{display:true, text:'Vendor Distribution'} },
+    scales:{ y:{ beginAtZero:true } }
+  }
+});
+// Leave distribution chart
+leaveChart = new Chart($('#leaveChart'), {
+  type:'bar',
+  data:{
+    labels:Object.keys(LEAVE),
+    datasets:[{
+      label:'Leave Analysis',
+      data:Object.values(LEAVE),
+      backgroundColor:['#2563eb','#16a34a','#f59e0b','#ef4444']
+    }]
+  },
+  options:{
+    plugins:{ title:{display:true, text:'Drivers Leave Analysis'} },
+    scales:{ y:{ beginAtZero:true } }
+  }
+});
+
+}
+
+function filterFromStatus(role, status){
+  nav('list');
+  $('#fStatus').value = status;
+  $('#fDesignation').value = '';
+  $('#fVendor').value = '';
+  applyFilters();
+  // Then further filter by role:
+  state.filtered = state.filtered.filter(role==='driver' ? isDriver : isOperator);
+  state.page=1;
+  state.totalPages = Math.max(1, Math.ceil(state.filtered.length / state.pageSize));
+  renderTablePage();
+}
+
+/*--------------------data Status------------------*/
+
+function setDataStatus(text, color="#475569") {
+  const el = document.getElementById("dataStatus");
+  if (el) {
+    el.textContent = text;
+    el.style.color = color;
+  }
+}
+
+
+/* --------------------------------- Init --------------------------------- */
+function onLoad(){
+  // restore page size
+  const psSel = $('#pageSize');
+  const savedPS = localStorage.getItem('pageSize_v2');
+  if(savedPS){ psSel.value = savedPS; state.pageSize = parseInt(savedPS,10); }
+  psSel.addEventListener('change', ()=>{ localStorage.setItem('pageSize_v2', psSel.value); });
+
+  // If you want to keep a "logout" function — optional
+  // window.doLogout = function(){ location.reload(); };
+}
+window.addEventListener('load', onLoad);
+/* Ensure SuperAdmin account exists once at startup */
+await ensureDefaultSuperAdmin();
+</script> 
